@@ -4,14 +4,15 @@ Private mobile assistant for Fareed. Modes: **Offline** · **Online** · **Voice
 
 Brand: dark neon (cyan / blue / purple), script **Dua** mark, tagline **ALWAYS WITH YOU**.
 
+**Android-only** target — there is no `ios/` folder and no iPhone/iOS support in this repo.
+
 This repo is a local Flutter scaffold ready to push to
 `https://github.com/KRFbrothers/todo-master` (or a dedicated Dua repo).
 
 ## Requirements
 
 - Flutter stable (built against **3.35.4**; newer stable should work)
-- Android SDK (Android-first target)
-- Optional: iOS toolchain for Mac builds
+- Android SDK (Android-only target)
 
 ## Run
 
@@ -56,8 +57,11 @@ lib/
     offline_tile.dart
     storage_pie.dart
     agent_node_graphic.dart
+android/                    # Android platform (only mobile target)
 BUILD_PLAN.md               # Product build plan (copied into app root)
 ```
+
+> Note: No `ios/` directory — this project does not include an iOS platform folder.
 
 ## Navigation
 
