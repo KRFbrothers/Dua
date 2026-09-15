@@ -2,6 +2,11 @@
     <!-- Network for Online agent (OpenAI-compatible chat). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Voice Mode (STT). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Optional: Bluetooth headset for speech_to_text on some devices. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- Media / storage (API 33+ granular + legacy maxSdk 32). No MANAGE_EXTERNAL_STORAGE. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
@@ -53,6 +58,14 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="*/*" />
+        </intent>
+        <!-- speech_to_text: on-device / system recognition services -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- flutter_tts: TextToSpeech engine discovery (API 30+) -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
     </queries>
 </manifest>
