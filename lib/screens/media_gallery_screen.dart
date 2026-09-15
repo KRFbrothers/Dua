@@ -7,6 +7,7 @@ import '../offline/media_service.dart';
 import '../offline/open_helper.dart';
 import '../offline/permission_service.dart';
 import '../theme/dua_colors.dart';
+import '../widgets/offline_empty_state.dart';
 
 enum MediaGalleryKind { images, videos }
 
@@ -135,7 +136,7 @@ class _MediaGalleryScreenState extends State<MediaGalleryScreen> {
       );
     }
     if (_denied) {
-      return _EmptyState(
+      return OfflineEmptyState(
         icon: Icons.lock_outline,
         title: 'Permission required',
         subtitle: 'Allow media access in Settings, then refresh.',
@@ -143,7 +144,7 @@ class _MediaGalleryScreenState extends State<MediaGalleryScreen> {
       );
     }
     if (_error != null) {
-      return _EmptyState(
+      return OfflineEmptyState(
         icon: Icons.error_outline,
         title: _error!,
         subtitle: 'Try again.',
@@ -151,7 +152,7 @@ class _MediaGalleryScreenState extends State<MediaGalleryScreen> {
       );
     }
     if (_assets.isEmpty) {
-      return _EmptyState(
+      return OfflineEmptyState(
         icon: widget.kind == MediaGalleryKind.images
             ? Icons.image_outlined
             : Icons.videocam_outlined,
@@ -213,58 +214,6 @@ class _MediaGalleryScreenState extends State<MediaGalleryScreen> {
           ),
         );
       },
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.onRetry,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56, color: DuaColors.cyan.withValues(alpha: 0.55)),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: DuaColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: DuaColors.textSecondary),
-            ),
-            if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: onRetry,
-                child: const Text('Retry', style: TextStyle(color: DuaColors.cyan)),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }
