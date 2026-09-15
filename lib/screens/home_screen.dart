@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/dua_colors.dart';
@@ -10,6 +11,29 @@ import 'voice_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  Future<void> _openOnline(BuildContext context) async {
+    try {
+      final results = await Connectivity().checkConnectivity();
+      final offline = results.isEmpty ||
+          results.every((r) => r == ConnectivityResult.none);
+      if (offline && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Needs network'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        // Still navigate — do not block forever.
+      }
+    } catch (_) {
+      // Connectivity plugin may fail on some hosts; allow entry anyway.
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const OnlineScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,11 +127,7 @@ class HomeScreen extends StatelessWidget {
                         label: 'Online',
                         color: DuaColors.onlineTeal,
                         icon: Icons.cloud_outlined,
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const OnlineScreen(),
-                          ),
-                        ),
+                        onPressed: () => _openOnline(context),
                       ),
                     ),
                   ],
