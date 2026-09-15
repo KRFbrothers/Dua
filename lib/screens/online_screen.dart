@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../agent/agent_settings.dart';
+import '../agent/llm_client.dart';
+import '../agent/prompts.dart';
 import '../theme/dua_colors.dart';
 import '../widgets/agent_node_graphic.dart';
+import 'agent_settings_screen.dart';
 import 'voice_screen.dart';
 
 class OnlineScreen extends StatefulWidget {
@@ -19,44 +23,34 @@ class _ChatBubble {
 
 class _OnlineScreenState extends State<OnlineScreen> {
   bool _agentMode = true;
+  bool _busy = false;
   final _controller = TextEditingController();
   final _scroll = ScrollController();
+  final _llm = LlmClient();
   final List<_ChatBubble> _messages = [
     const _ChatBubble(
       text: "Hello, I'm Dua. Ask me anything.",
       isUser: false,
     ),
   ];
+  final List<ChatMessage> _history = [];
 
-  static const _quickActions = [
-    ('Schedule a meeting', Icons.event_outlined),
-    ('Translate text', Icons.translate),
-    ('Summarize email', Icons.mail_outline),
-    ('Write something', Icons.edit_outlined),
-  ];
+  static const _quickIcons = <String, IconData>{
+    'Schedule a meeting': Icons.event_outlined,
+    'Translate text': Icons.translate,
+    'Summarize email': Icons.mail_outline,
+    'Write something': Icons.edit_outlined,
+  };
 
   @override
   void dispose() {
     _controller.dispose();
     _scroll.dispose();
+    _llm.close();
     super.dispose();
   }
 
-  void _send([String? preset]) {
-    final text = (preset ?? _controller.text).trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(_ChatBubble(text: text, isUser: true));
-      _messages.add(
-        _ChatBubble(
-          text: _agentMode
-              ? 'Theek. Main abhi stub mode mein hoon — LLM wiring Phase 2 mein aayega.\n\n"$text" samajh liya.'
-              : 'Work mode stub. Task list / persona later.',
-          isUser: false,
-        ),
-      );
-      _controller.clear();
-    });
+  void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
         _scroll.animateTo(
@@ -68,8 +62,101 @@ class _OnlineScreenState extends State<OnlineScreen> {
     });
   }
 
+  Future<void> _openSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AgentSettingsScreen()),
+    );
+  }
+
+  Future<void> _send({String? displayText, String? apiText}) async {
+    if (_busy) return;
+    final shown = (displayText ?? _controller.text).trim();
+    final forModel = (apiText ?? shown).trim();
+    if (shown.isEmpty || forModel.isEmpty) return;
+
+    setState(() {
+      _messages.add(_ChatBubble(text: shown, isUser: true));
+      _controller.clear();
+      _busy = true;
+    });
+    _history.add(ChatMessage(role: 'user', content: forModel));
+    _scrollToEnd();
+
+    final settings = await AgentSettings.load();
+    if (!settings.hasApiKey) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _messages.add(
+          const _ChatBubble(
+            text:
+                'API key missing. Open Settings (gear icon) to paste your key.',
+            isUser: false,
+          ),
+        );
+      });
+      _scrollToEnd();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('API key required'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(label: 'Settings', onPressed: _openSettings),
+        ),
+      );
+      return;
+    }
+
+    final apiMessages = <ChatMessage>[
+      ChatMessage(
+        role: 'system',
+        content: AgentPrompts.systemFor(agentMode: _agentMode),
+      ),
+      ..._history,
+    ];
+
+    final result = await _llm.chat(settings: settings, messages: apiMessages);
+    if (!mounted) return;
+
+    setState(() {
+      _busy = false;
+      if (result is LlmSuccess) {
+        _messages.add(_ChatBubble(text: result.content, isUser: false));
+        _history.add(ChatMessage(role: 'assistant', content: result.content));
+      } else if (result is LlmFailure) {
+        _messages.add(_ChatBubble(text: result.message, isUser: false));
+        // Drop the last user turn from history so retries stay clean.
+        if (_history.isNotEmpty && _history.last.role == 'user') {
+          _history.removeLast();
+        }
+        if (result.needsSettings) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result.message),
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: _openSettings,
+                ),
+              ),
+            );
+          });
+        }
+      }
+    });
+    _scrollToEnd();
+  }
+
+  void _onQuickAction(String label, String prompt) {
+    _send(displayText: label, apiText: prompt);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final itemCount = _messages.length + (_busy ? 1 : 0);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -78,11 +165,23 @@ class _OnlineScreenState extends State<OnlineScreen> {
         ),
         title: const Text('Online'),
         actions: [
+          IconButton(
+            tooltip: 'Agent settings',
+            onPressed: _openSettings,
+            icon: const Icon(Icons.settings_outlined),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: _ModeToggle(
               agentSelected: _agentMode,
-              onChanged: (agent) => setState(() => _agentMode = agent),
+              onChanged: (agent) {
+                if (_busy) return;
+                setState(() {
+                  _agentMode = agent;
+                  // Fresh context when switching persona.
+                  _history.clear();
+                });
+              },
             ),
           ),
         ],
@@ -96,8 +195,30 @@ class _OnlineScreenState extends State<OnlineScreen> {
             child: ListView.builder(
               controller: _scroll,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: _messages.length,
+              itemCount: itemCount,
               itemBuilder: (context, i) {
+                if (_busy && i == _messages.length) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: DuaColors.surfaceElevated,
+                        border: Border.all(color: DuaColors.borderNeon),
+                      ),
+                      child: const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
                 final m = _messages[i];
                 return Align(
                   alignment:
@@ -139,10 +260,12 @@ class _OnlineScreenState extends State<OnlineScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _quickActions.length,
+              itemCount: AgentPrompts.quickActions.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
-                final (label, icon) = _quickActions[i];
+                final (label, prompt) = AgentPrompts.quickActions[i];
+                final icon =
+                    _quickIcons[label] ?? Icons.auto_awesome_outlined;
                 return ActionChip(
                   avatar: Icon(icon, size: 16, color: DuaColors.cyanSoft),
                   label: Text(label),
@@ -152,7 +275,7 @@ class _OnlineScreenState extends State<OnlineScreen> {
                   ),
                   backgroundColor: DuaColors.card,
                   side: const BorderSide(color: DuaColors.borderNeon),
-                  onPressed: () => _send(label),
+                  onPressed: _busy ? null : () => _onQuickAction(label, prompt),
                 );
               },
             ),
@@ -178,10 +301,11 @@ class _OnlineScreenState extends State<OnlineScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    enabled: !_busy,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    decoration: const InputDecoration(
-                      hintText: 'Ask Agent…',
+                    decoration: InputDecoration(
+                      hintText: _agentMode ? 'Ask Agent…' : 'Ask Work…',
                     ),
                   ),
                 ),
@@ -194,8 +318,11 @@ class _OnlineScreenState extends State<OnlineScreen> {
                 ),
                 IconButton(
                   tooltip: 'Send',
-                  onPressed: _send,
-                  icon: const Icon(Icons.send_rounded, color: DuaColors.cyan),
+                  onPressed: _busy ? null : () => _send(),
+                  icon: Icon(
+                    Icons.send_rounded,
+                    color: _busy ? DuaColors.textMuted : DuaColors.cyan,
+                  ),
                 ),
               ],
             ),
