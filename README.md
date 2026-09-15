@@ -1,67 +1,89 @@
-# Dua — Flutter scaffold (Phase 0 + UI shell)
+# Dua — Flutter app (Phase 1 Offline)
 
 Private mobile assistant for Fareed. Modes: **Offline** · **Online** · **Voice**.
 
 Brand: dark neon (cyan / blue / purple), script **Dua** mark, tagline **ALWAYS WITH YOU**.
 
-**Android-only** target — there is no `ios/` folder and no iPhone/iOS support in this repo.
-
-This repo is a local Flutter scaffold ready to push to
-`https://github.com/KRFbrothers/todo-master` (or a dedicated Dua repo).
+Repo: `https://github.com/KRFbrothers/Dua`
 
 ## Requirements
 
 - Flutter stable (built against **3.35.4**; newer stable should work)
-- Android SDK (Android-only target)
+- Android SDK (Android-first; no `ios/` folder in this tree)
 
 ## Run
 
 ```bash
-cd app   # or: cd /workspace/dua/app
+git clone https://github.com/KRFbrothers/Dua.git
+cd Dua
 flutter pub get
 flutter run
 ```
 
-Android emulator / device:
+Or re-download the ZIP from GitHub → extract → `flutter pub get` → `flutter run`.
+
+Android device / emulator:
 
 ```bash
 flutter devices
 flutter run -d <deviceId>
-```
-
-Analyze:
-
-```bash
 flutter analyze
 ```
+
+## Phase 1 Offline (local browsing)
+
+Permissions are requested **when you tap a tile**, not when Offline opens. Deny → snackbar with **Settings** hint.
+
+| Tile | Behavior |
+|------|----------|
+| Images | Device photo library (thumbnails + open) via `photo_manager` |
+| Videos | Device videos gallery |
+| Audio | Scan common folders for audio extensions |
+| Downloads | Browse `Download` / `Downloads` folder |
+| Documents | Docs by extension (pdf, txt, doc/docx, …) |
+| New files | Recent media/docs (last ~30 days) |
+| Main storage | Folder browser from primary external storage |
+| Storage Analysis | Used/free via `disk_space_2` (demo fallback) |
+| Apps | Launchable installed packages (`installed_apps`) |
+| Cloud / Remote / Access from… | Still “coming next” stubs |
+
+### Packages added
+
+- `permission_handler`
+- `photo_manager`
+- `path_provider` / `path`
+- `open_filex`
+- `installed_apps`
+- `disk_space_2`
+
+### Android permissions
+
+- `READ_MEDIA_IMAGES` / `VIDEO` / `AUDIO`
+- `READ_EXTERNAL_STORAGE` (maxSdk 32)
+- `QUERY_ALL_PACKAGES` (Apps tile)
+- Package-visibility `<queries>` for launcher + `VIEW`
+- **Not** using `MANAGE_EXTERNAL_STORAGE` (scoped storage preferred)
 
 ## Project structure
 
 ```
 lib/
-  main.dart                 # App entry, Material 3 dark theme
-  theme/
-    dua_colors.dart         # Neon color tokens
-    dua_theme.dart          # ThemeData
+  main.dart
+  theme/                 # DuaColors, ThemeData
+  offline/               # permissions, media, file browser, apps, storage stats
   screens/
-    home_screen.dart        # Orb, mic → Voice, Offline / Online CTAs, hamburger
-    offline_screen.dart     # 12-tile local grid
-    online_screen.dart      # Agent|Work toggle, chat stub, quick actions
-    voice_screen.dart       # Waveform, Hindi sample transcript, call controls
-    stub_detail_screen.dart # Empty / demo detail (incl. Storage Analysis pie)
+    home_screen.dart
+    offline_screen.dart  # wires tiles → real screens
+    media_gallery_screen.dart
+    file_browser_screen.dart
+    storage_analysis_screen.dart
+    apps_list_screen.dart
+    online_screen.dart
+    voice_screen.dart
+    stub_detail_screen.dart   # Cloud / Remote / Access stubs
   widgets/
-    dua_logo.dart
-    neon_orb.dart
-    waveform.dart
-    mode_cta_button.dart
-    offline_tile.dart
-    storage_pie.dart
-    agent_node_graphic.dart
-android/                    # Android platform (only mobile target)
-BUILD_PLAN.md               # Product build plan (copied into app root)
+BUILD_PLAN.md
 ```
-
-> Note: No `ios/` directory — this project does not include an iOS platform folder.
 
 ## Navigation
 
@@ -70,17 +92,12 @@ BUILD_PLAN.md               # Product build plan (copied into app root)
 | Home | Mic / orb | Voice |
 | Home | Offline (red) | Offline grid |
 | Home | Online (teal) | Online agent |
-| Home | Hamburger | Snackbar stub |
-| Offline / Online / Voice | Back | Previous |
-| Offline tile | Tap | Stub detail (Storage Analysis → demo pie) |
+| Offline tile | Tap | Real local browser / gallery / apps / analysis (or coming-next stub) |
 | Voice | Mic | Toggle listening animation |
-| Voice | End | Pop back |
-| Voice | Share / Video / Pulse | Stub snackbars |
 | Online | Quick actions / Ask Agent | Local stub chat bubbles |
 
-## What's stubbed (out of scope for this scaffold)
+## Still stubbed (later phases)
 
-- Real device file / media / storage APIs
 - STT / TTS / on-device voice
 - LLM API keys and network agent
 - Screen share / video call
@@ -89,16 +106,11 @@ BUILD_PLAN.md               # Product build plan (copied into app root)
 
 ## Product rules (short)
 
-See also `BUILD_PLAN.md` and parent docs under `/workspace/dua/DUA_*.md`.
+See also `BUILD_PLAN.md`.
 
 - Private + offline-first
 - Short Hinglish voice/text
 - Agent chat before full Work mode
-
-## Zip
-
-Parent folder ships a zip at `/workspace/dua/dua-flutter-scaffold.zip`
-(excludes `build/` and `.dart_tool/` when present).
 
 ---
 
