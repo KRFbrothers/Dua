@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/dua_colors.dart';
 import '../widgets/offline_tile.dart';
+import 'apps_list_screen.dart';
+import 'file_browser_screen.dart';
+import 'media_gallery_screen.dart';
+import 'storage_analysis_screen.dart';
 import 'stub_detail_screen.dart';
 
 class OfflineScreen extends StatelessWidget {
@@ -32,31 +36,66 @@ class OfflineScreen extends StatelessWidget {
       accent: DuaColors.blue,
     ),
     OfflineTileData(
-      title: 'Access from…',
+      title: 'Access from...',
       icon: Icons.link_outlined,
       accent: DuaColors.magenta,
     ),
   ];
 
   void _openTile(BuildContext context, OfflineTileData tile) {
-    final isAnalysis = tile.title == 'Storage Analysis';
-    final isComingNext = tile.title == 'Cloud' ||
-        tile.title == 'Remote' ||
-        tile.title.startsWith('Access');
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => StubDetailScreen(
+    final Widget page;
+    switch (tile.title) {
+      case 'Images':
+        page = const MediaGalleryScreen(
+          title: 'Images',
+          kind: MediaGalleryKind.images,
+        );
+      case 'Videos':
+        page = const MediaGalleryScreen(
+          title: 'Videos',
+          kind: MediaGalleryKind.videos,
+        );
+      case 'Audio':
+        page = const FileBrowserScreen(
+          title: 'Audio',
+          mode: FileBrowserMode.audio,
+        );
+      case 'Downloads':
+        page = const FileBrowserScreen(
+          title: 'Downloads',
+          mode: FileBrowserMode.downloads,
+        );
+      case 'Documents':
+        page = const FileBrowserScreen(
+          title: 'Documents',
+          mode: FileBrowserMode.documents,
+        );
+      case 'New files':
+        page = const FileBrowserScreen(
+          title: 'New files',
+          mode: FileBrowserMode.recent,
+        );
+      case 'Main storage':
+        page = const FileBrowserScreen(
+          title: 'Main storage',
+          mode: FileBrowserMode.folder,
+        );
+      case 'Storage Analysis':
+        page = const StorageAnalysisScreen();
+      case 'Apps':
+        page = const AppsListScreen();
+      case 'Cloud':
+      case 'Remote':
+      case 'Access from...':
+        page = StubDetailScreen(
           title: tile.title,
-          showStoragePie: isAnalysis,
-          subtitle: isComingNext
-              ? 'Coming next — post-MVP sync / remote access.'
-              : isAnalysis
-                  ? 'Demo breakdown only. Live device stats later.'
-                  : 'Empty state stub. Local file APIs out of scope for Phase 0.',
-        ),
-      ),
-    );
+          subtitle: 'Coming next — post-MVP sync / remote access.',
+        );
+      default:
+        page = StubDetailScreen(title: tile.title);
+    }
+
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
   @override
