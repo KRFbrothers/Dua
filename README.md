@@ -1,4 +1,4 @@
-# Dua — Flutter app (Phase 2 Online Agent)
+# Dua — Flutter app (Phase 3 Voice Mode)
 
 Private mobile assistant for Fareed. Modes: **Offline** · **Online** · **Voice**.
 
@@ -10,7 +10,8 @@ Repo: `https://github.com/KRFbrothers/Dua`
 
 - Flutter stable (built against **3.35.4**; newer stable should work)
 - Android SDK (Android-first; no `ios/` folder in this tree)
-- An OpenAI-compatible API key (OpenAI, Groq, OpenRouter, …) for Online chat
+- An OpenAI-compatible API key (OpenAI, Groq, OpenRouter, …) for Online chat / voice agent replies
+- **Physical Android device recommended for Voice** (emulator mic often needs host audio passthrough)
 
 ## Run
 
@@ -29,7 +30,60 @@ Android device / emulator:
 flutter devices
 flutter run -d <deviceId>
 flutter analyze
+flutter test
 ```
+
+## Phase 3 Voice Mode
+
+Home mic / orb opens a real voice session (neon waveform + live transcript).
+
+### Features
+
+| Control | Behavior |
+|---------|----------|
+| **Mic** | Starts / stops on-device-preferring STT (`speech_to_text`) |
+| **End** / back | Stops STT + TTS and closes the session |
+| Share / Video / Pulse | Snackbar **coming soon** |
+
+Flow:
+
+1. Mic permission requested on first Voice open.
+2. Speak (Hinglish OK) → partial + final transcript on screen.
+3. **Intent router** (keyword / regex, hi + en):
+   - Gallery / photos / images / “gallery kholo” → Offline **Images** gallery
+   - Videos → Offline **Videos**
+   - Downloads / documents / storage / audio / apps / offline → matching Offline screen
+   - Schedule / translate / summarize / write / general questions → **Online agent** path
+4. Short TTS confirmation via `flutter_tts` (e.g. “Gallery khol rahi hoon…”).
+5. Agent path reuses Phase 2 `LlmClient` + secure settings. No API key → spoken hint + snackbar to open **Online** / **Settings**.
+
+STT prefers **on-device** recognition (`SpeechListenOptions.onDevice`); if the device cannot, it falls back to the system recognizer.
+
+### Emulator caveat
+
+Android emulators often have **no usable microphone** unless you enable host audio / virtual mic in AVD settings. Prefer a **physical device** for Voice Mode testing. If STT fails on emulator, that is expected — Offline / Online still work.
+
+### Packages added (Phase 3)
+
+- `speech_to_text`
+- `flutter_tts`
+- `permission_handler` (already present; used for mic)
+
+### Android permissions (Voice)
+
+- `RECORD_AUDIO`
+- `BLUETOOTH` (maxSdk 30) / `BLUETOOTH_CONNECT` (headset support for speech_to_text)
+- `<queries>` for `RecognitionService` and `TTS_SERVICE`
+
+### How to test Voice
+
+1. `flutter run` on a physical Android phone.
+2. Allow microphone when prompted.
+3. Say **“gallery kholo”** → should TTS confirm and open Images.
+4. Say **“open downloads”** → Downloads browser.
+5. Say **“translate hello to Hindi”** (with API key in Online Settings) → spoken LLM reply.
+6. Without API key → hears key-needed message; snackbar offers Online / Settings.
+7. Share / Video / Pulse → “coming soon” snackbar.
 
 ## Phase 2 Online Agent
 
@@ -105,10 +159,11 @@ Permissions are requested **when you tap a tile**, not when Offline opens. Deny 
 ### Android permissions
 
 - `INTERNET` / `ACCESS_NETWORK_STATE` (Online agent)
+- `RECORD_AUDIO` + Bluetooth (Voice)
 - `READ_MEDIA_IMAGES` / `VIDEO` / `AUDIO`
 - `READ_EXTERNAL_STORAGE` (maxSdk 32)
 - `QUERY_ALL_PACKAGES` (Apps tile)
-- Package-visibility `<queries>` for launcher + `VIEW`
+- Package-visibility `<queries>` for launcher + `VIEW` + speech / TTS
 - **Not** using `MANAGE_EXTERNAL_STORAGE` (scoped storage preferred)
 
 ## Project structure
@@ -119,6 +174,7 @@ lib/
   theme/                 # DuaColors, ThemeData
   offline/               # permissions, media, file browser, apps, storage stats
   agent/                 # LLM client, secure settings, prompts
+  voice/                 # intent router (Phase 3)
   screens/
     home_screen.dart
     offline_screen.dart
@@ -138,30 +194,33 @@ BUILD_PLAN.md
 
 | From | Action | To |
 |------|--------|-----|
-| Home | Mic / orb | Voice |
+| Home | Mic / orb | Voice session (STT + router) |
 | Home | Offline (red) | Offline grid |
 | Home | Online (teal) | Online agent (snackbar if offline) |
 | Online | Gear | Agent settings (API key / URL / model) |
 | Online | Quick actions / Ask Agent | Live LLM chat |
 | Offline tile | Tap | Local browser / gallery / apps / analysis (or stub) |
-| Voice | Mic | Toggle listening animation |
+| Voice | Spoken gallery/files | Offline target screen |
+| Voice | Spoken question / write / schedule | Online agent (LLM + TTS) |
+| Voice | Mic / End | Listen toggle / leave session |
 
 ## Still stubbed (later phases)
 
-- STT / TTS / on-device voice
-- Screen share / video call
+- Screen share / video call / Pulse
 - Work mode beyond a second chat persona
 - Cloud / Remote / Access-from sync
 - Attach in Online chat
+- Stronger NLU beyond keyword router
 
 ## Product rules (short)
 
 See also `BUILD_PLAN.md`.
 
-- Private + offline-first
+- Private + Offline-first
 - Short Hinglish voice/text
 - Agent chat before full Work mode
 - No hardcoded API keys
+- Prefer on-device STT when available
 
 ---
 
