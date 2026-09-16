@@ -1,5 +1,7 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
@@ -12,36 +14,43 @@ import 'online_screen.dart';
 import 'privacy_screen.dart';
 import 'voice_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../providers/connectivity_provider.dart';
+import '../services/ai_service.dart';
+
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  Future<void> _openOnline(BuildContext context) async {
-    try {
-      final results = await Connectivity().checkConnectivity();
-      final offline = results.isEmpty ||
-          results.every((r) => r == ConnectivityResult.none);
-      if (offline && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${DataPathLabels.onlineNeedsNetwork} — Online agent uses the internet.',
-            ),
-            behavior: SnackBarBehavior.floating,
+  Future<void> _openOnline(BuildContext context, WidgetRef ref) async {
+    final connectivityResult = await ref.read(connectivityProvider.future);
+    final isOnline = connectivityResult != ConnectivityResult.none && connectivityResult.isNotEmpty;
+
+    if (!isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${DataPathLabels.onlineNeedsNetwork} — Online agent uses the internet.',
           ),
-        );
-        // Still navigate — do not block forever.
-      }
-    } catch (_) {
-      // Connectivity plugin may fail on some hosts; allow entry anyway.
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
+
+    // Simulate fetching response or navigating
+    final response = await AiService.getOnlineResponse("Give me a dua for success");
+    print("Online Service Response: $response");
+
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const OnlineScreen()),
     );
   }
 
-  void _openOffline(BuildContext context) {
+  void _openOffline(BuildContext context, WidgetRef ref) {
     assertOfflinePath('Home→Offline');
+
+    final response = AiService.getOfflineResponse("Give me a dua for protection");
+    print("Offline Service Response: $response");
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(DataPathLabels.offlineSubtitle),
@@ -55,153 +64,101 @@ class HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectivityAsyncValue = ref.watch(connectivityProvider);
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.2),
-            radius: 1.1,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF12121C),
-              DuaColors.black,
+              DuaColors.darkNavy, // Start color
+              DuaColors.darkPurple, // End color
             ],
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Menu',
-                      onPressed: () {
-                        showModalBottomSheet<void>(
-                          context: context,
-                          backgroundColor: DuaColors.surfaceElevated,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
-                            ),
-                          ),
-                          builder: (ctx) {
-                            return SafeArea(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(
-                                      Icons.settings_outlined,
-                                      color: DuaColors.cyanSoft,
-                                    ),
-                                    title: const Text('Settings'),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const AgentSettingsScreen(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(
-                                      Icons.privacy_tip_outlined,
-                                      color: DuaColors.cyanSoft,
-                                    ),
-                                    title: const Text('Privacy'),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => const PrivacyScreen(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Spacer(flex: 3),
+            const DuaLogo(),
+            const Spacer(),
+            const NeonOrb(
+              size: 200,
+              onTap: null, // VoiceScreen functionality can be re-added later if needed.
+            ),
+            const SizedBox(height: 28),
+            // Temporarily disable NeonMicButton if voice is not yet integrated with AI service
+            // NeonMicButton(
+            //   onPressed: () => Navigator.of(context).push(
+            //     MaterialPageRoute(builder: (_) => const VoiceScreen()),
+            //   ),
+            // ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap mic for Voice', // Keep text for now
+              style: TextStyle(
+                color: DuaColors.textMuted.withValues(alpha: 0.9),
+                fontSize: 12,
+              ),
+            ),
+            const Spacer(flex: 2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ModeCtaButton(
+                      label: 'Offline',
+                      color: DuaColors.offlineRed,
+                      icon: Icons.folder_off_outlined,
+                      onPressed: () => _openOffline(context, ref),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: connectivityAsyncValue.when(
+                      data: (connectivityResult) {
+                        final isOnline = connectivityResult != ConnectivityResult.none && connectivityResult.isNotEmpty;
+                        return ModeCtaButton(
+                          label: 'Online',
+                          color: DuaColors.onlineTeal,
+                          icon: Icons.cloud_outlined,
+                          onPressed: isOnline
+                              ? () => _openOnline(context, ref)
+                              : null, // Disable button if offline
                         );
                       },
-                      icon: const Icon(Icons.menu, color: DuaColors.cyanSoft),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'PRIVATE',
-                      style: TextStyle(
-                        color: DuaColors.textMuted.withValues(alpha: 0.9),
-                        fontSize: 10,
-                        letterSpacing: 2,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              const DuaLogo(fontSize: 52, taglineSize: 11),
-              const Spacer(flex: 2),
-              NeonOrb(
-                size: 200,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const VoiceScreen()),
-                ),
-              ),
-              const SizedBox(height: 28),
-              NeonMicButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const VoiceScreen()),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Tap mic for Voice',
-                style: TextStyle(
-                  color: DuaColors.textMuted.withValues(alpha: 0.9),
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(flex: 2),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ModeCtaButton(
-                        label: 'Offline',
-                        color: DuaColors.offlineRed,
-                        icon: Icons.folder_off_outlined,
-                        onPressed: () => _openOffline(context),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: ModeCtaButton(
-                        label: 'Online',
+                      loading: () => ModeCtaButton(
+                        label: 'Checking..',
                         color: DuaColors.onlineTeal,
                         icon: Icons.cloud_outlined,
-                        onPressed: () => _openOnline(context),
+                        onPressed: null, // Disable while loading
+                      ),
+                      error: (err, stack) => ModeCtaButton(
+                        label: 'Error',
+                        color: DuaColors.onlineTeal,
+                        icon: Icons.error_outline,
+                        onPressed: null, // Disable on error
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Offline = local  ·  Online = network + API key',
-                style: TextStyle(
-                  color: DuaColors.textMuted.withValues(alpha: 0.85),
-                  fontSize: 11,
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Offline = local  ·  Online = network + API key',
+              style: TextStyle(
+                color: DuaColors.textMuted.withValues(alpha: 0.85),
+                fontSize: 11,
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
