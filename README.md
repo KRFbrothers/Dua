@@ -205,6 +205,7 @@ Permissions are requested **when you tap a tile**, not when Offline opens. Deny 
 - `open_filex`
 - `installed_apps`
 - `disk_space_2`
+- `share_plus` / `image_picker` (Phase 5 Voice)
 
 ### Android permissions
 
@@ -213,6 +214,7 @@ Permissions are requested **when you tap a tile**, not when Offline opens. Deny 
 - `READ_MEDIA_IMAGES` / `VIDEO` / `AUDIO`
 - `READ_EXTERNAL_STORAGE` (maxSdk 32)
 - `QUERY_ALL_PACKAGES` (Apps tile)
+- `CAMERA` (Voice Video capture)
 - Package-visibility `<queries>` for launcher + `VIEW` + speech / TTS
 - **Not** using `MANAGE_EXTERNAL_STORAGE` (scoped storage preferred)
 
@@ -222,21 +224,25 @@ Permissions are requested **when you tap a tile**, not when Offline opens. Deny 
 lib/
   main.dart
   theme/                 # DuaColors, ThemeData
-  offline/               # permissions, media, file browser, apps, storage stats
-  agent/                 # LLM client, secure settings, prompts
+  offline/               # permissions, media, file browser, apps, storage stats, remote_prefs
+  agent/                 # LLM client, secure settings, prompts, work_board_store
   voice/                 # intent router (Phase 3)
-  privacy/               # Offline vs Online path docs/guards (Phase 4)
+  privacy/               # Offline vs Online data path asserts
   screens/
     home_screen.dart
     offline_screen.dart
+    cloud_sources_screen.dart
+    remote_access_screen.dart
+    access_from_screen.dart
     media_gallery_screen.dart
     file_browser_screen.dart
     storage_analysis_screen.dart
     apps_list_screen.dart
     online_screen.dart
+    work_board_screen.dart
     agent_settings_screen.dart
-    privacy_screen.dart
     voice_screen.dart
+    privacy_screen.dart
     stub_detail_screen.dart
   widgets/
 BUILD_PLAN.md
@@ -251,15 +257,23 @@ BUILD_PLAN.md
 | Home | Online (teal) | Online agent (snackbar if offline) |
 | Online | Gear | Agent settings (API key / URL / model) |
 | Online | Quick actions / Ask Agent | Live LLM chat |
-| Offline tile | Tap | Local browser / gallery / apps / analysis (or stub) |
+| Offline tile | Tap | Local browser / gallery / apps / analysis / Cloud·Remote·Access |
+| Online Work | List icon | Work board (LOCAL drafts) |
+| Voice | Share / Video / Pulse | Transcript share / camera capture / waveform boost |
 | Voice | Spoken gallery/files | Offline target screen |
 | Voice | Spoken question / write / schedule | Online agent (LLM + TTS) |
 | Voice | Mic / End | Listen toggle / leave session |
 
+## Phase 5 (shipped hubs)
+
+- Offline **Cloud / Remote / Access from…** real screens (providers not connected; privacy first)
+- Voice **Share** (transcript), **Video** (camera capture), **Pulse** (waveform boost)
+- Online Work **Work board** (local JSON CRUD + save-from-chat)
+
 ## Still stubbed (later phases)
 
-- Screen share / video call / Pulse
-- Cloud / Remote / Access-from sync (full remote)
+- Full Drive / Dropbox / OneDrive sync
+- Real video call / screen share stream
 - Attach in Online chat
 - Stronger NLU beyond keyword router
 
