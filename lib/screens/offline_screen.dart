@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
 import '../widgets/offline_tile.dart';
+import 'access_from_screen.dart';
 import 'apps_list_screen.dart';
+import 'cloud_sources_screen.dart';
 import 'file_browser_screen.dart';
 import 'media_gallery_screen.dart';
+import 'remote_access_screen.dart';
 import 'storage_analysis_screen.dart';
 import 'stub_detail_screen.dart';
 
@@ -86,12 +89,11 @@ class OfflineScreen extends StatelessWidget {
       case 'Apps':
         page = const AppsListScreen();
       case 'Cloud':
+        page = const CloudSourcesScreen();
       case 'Remote':
+        page = const RemoteAccessScreen();
       case 'Access from...':
-        page = StubDetailScreen(
-          title: tile.title,
-          subtitle: 'Coming next — Cloud/Remote sync not in Phase 4. Stays local-only offline.',
-        );
+        page = const AccessFromScreen();
       default:
         page = StubDetailScreen(title: tile.title);
     }
