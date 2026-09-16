@@ -101,13 +101,37 @@
 - On-device STT preference toggle ✅
 - Animated orb / node graph (match Home & Online screens) ✅
 - Work mode vs Agent mode distinction ✅
-- Cloud / Remote / Access-from tiles (optional sync later) — still stubs / coming next
-- Screen share + video call controls only if still desired — still stubs
+- Cloud / Remote / Access-from tiles → Phase 5 hubs (no live sync) ✅
+- Screen share / video call → Phase 5 Share + camera capture + Pulse ✅
 - Privacy screen + Settings blurb ✅
 - Adaptive launcher icon XML ✅
 
 ---
 
+
+## Phase 5 — Cloud/Remote hubs, Voice extras, Work board
+
+### A) Offline Cloud / Remote / Access-from
+- **CloudSourcesScreen** — privacy-first hub; Drive / Dropbox / OneDrive show “Not connected”; Connect → later sync snackbar; optional local mirror folder (Documents / Downloads / app docs).
+- **RemoteAccessScreen** — explainer + **Allow remote access** switch (default OFF, secure storage). Offline files never leave without Online/API.
+- **AccessFromScreen** — checklist (Share sheet → Open with / copy → Dua Documents) + open Documents / Downloads.
+- Wired from Offline grid; `assertOfflinePath` kept.
+
+### B) Voice Share / Video / Pulse
+- **Share** — `share_plus` text of last user + Dua reply (`subject: Dua voice transcript`).
+- **Video** — `image_picker` camera video/photo capture only (copy: video call later); path dialog / snackbar; cancel quiet.
+- **Pulse** — toggles `_pulseBoost` (persisted); intensifies `NeonWaveform`; cyan active border on control.
+- Deps: `share_plus`, `image_picker`; Android `CAMERA` permission.
+
+### C) Work mode depth
+- **WorkBoardStore** — local JSON in app documents (`id`, `title`, `body`, `createdAt`) CRUD.
+- **WorkBoardScreen** — list / view / swipe-delete / FAB add; LOCAL badge.
+- Online Work AppBar → Work board; after successful Work LLM reply → SnackBar **Save to Work board**.
+- Work chips: New task / Outline / Email draft / Prioritize today.
+
+**Done when:** Cloud/Remote/Access real screens; Share/Video/Pulse work; Work board local CRUD + save-from-chat; docs updated.
+
+---
 ## Suggested repo layout
 
 ```
@@ -134,7 +158,7 @@ dua/
 
 - Flutter + Android-first unless overridden
 - Agent chat ships before Work mode
-- Cloud / Remote / Access-from and advanced voice controls (screen share, video) are post-MVP
+- Cloud / Remote / Access-from hubs + Voice Share/camera/Pulse + Work board ship in Phase 5; full cloud sync & video call later
 
 ---
 
