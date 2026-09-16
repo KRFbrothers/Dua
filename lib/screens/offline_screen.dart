@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
 import '../widgets/offline_tile.dart';
 import 'apps_list_screen.dart';
@@ -89,7 +90,7 @@ class OfflineScreen extends StatelessWidget {
       case 'Access from...':
         page = StubDetailScreen(
           title: tile.title,
-          subtitle: 'Coming next — post-MVP sync / remote access.',
+          subtitle: 'Coming next — Cloud/Remote sync not in Phase 4. Stays local-only offline.',
         );
       default:
         page = StubDetailScreen(title: tile.title);
@@ -100,6 +101,7 @@ class OfflineScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    assertOfflinePath('OfflineScreen');
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -112,11 +114,11 @@ class OfflineScreen extends StatelessWidget {
             padding: EdgeInsets.only(right: 16),
             child: Center(
               child: Text(
-                'LOCAL',
+                DataPathLabels.offlineLocal,
                 style: TextStyle(
                   color: DuaColors.cyanSoft,
                   fontSize: 10,
-                  letterSpacing: 2,
+                  letterSpacing: 1.4,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -130,7 +132,7 @@ class OfflineScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Local files & storage',
+              DataPathLabels.offlineSubtitle,
               style: TextStyle(color: DuaColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 16),
