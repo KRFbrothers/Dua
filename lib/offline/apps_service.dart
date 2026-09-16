@@ -1,3 +1,4 @@
+// Offline data path — local device only; must never call LLM/network APIs.
 import 'package:flutter/foundation.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';

@@ -1,3 +1,4 @@
+// Offline data path — local device only; must never call LLM/network APIs.
 import 'package:disk_space_2/disk_space_2.dart';
 import 'package:path_provider/path_provider.dart';
 

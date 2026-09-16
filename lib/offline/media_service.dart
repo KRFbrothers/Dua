@@ -1,3 +1,4 @@
+// Offline data path — local device only; must never call LLM/network APIs.
 import 'dart:typed_data';
 
 import 'package:photo_manager/photo_manager.dart';
