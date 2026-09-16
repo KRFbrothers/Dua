@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../agent/agent_settings.dart';
 import '../agent/llm_client.dart';
 import '../agent/prompts.dart';
+import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
 import '../voice/voice_intent_router.dart';
 import '../widgets/dua_logo.dart';
@@ -91,10 +92,15 @@ class _VoiceScreenState extends State<VoiceScreen> {
         break;
       }
     }
+    // Privacy: honour Settings → prefer on-device STT (falls back if unavailable).
+    final prefs = await AgentSettings.load();
+    _onDevice = prefs.preferOnDeviceStt;
     if (!mounted) return;
     setState(() {
       _ready = true;
-      _status = 'Ready';
+      _status = prefs.preferOnDeviceStt
+          ? 'Ready · on-device STT prefer'
+          : 'Ready · system STT';
     });
     await _speak(_reply);
     if (mounted) await _start();
@@ -209,6 +215,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
       _ => null,
     };
     if (target != null) {
+      assertOfflinePath('Voice→Offline');
       await Future<void>.delayed(const Duration(milliseconds: 600));
       if (mounted) {
         await Navigator.push(
@@ -223,6 +230,7 @@ class _VoiceScreenState extends State<VoiceScreen> {
   }
 
   Future<void> _askOnline(String text) async {
+    assertOnlinePath('Voice→Online');
     final settings = await AgentSettings.load();
     if (!settings.hasApiKey) {
       const message = 'API key chahiye. Online Settings mein key set karo.';
@@ -339,6 +347,17 @@ class _VoiceScreenState extends State<VoiceScreen> {
                           color: DuaColors.cyanSoft,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _onDevice
+                            ? 'STT: on-device prefer'
+                            : 'STT: system / network may apply',
+                        style: const TextStyle(
+                          color: DuaColors.textMuted,
+                          fontSize: 10,
+                          letterSpacing: 0.6,
                         ),
                       ),
                       Expanded(
