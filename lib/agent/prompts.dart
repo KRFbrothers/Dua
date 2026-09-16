@@ -13,13 +13,14 @@ Be structured, action-oriented, and concise. Prefer checklists, drafts, and next
 Reply in Hindi, English, or Hinglish to match the user.
 Help with scheduling language, emails, summaries, translations, and writing for work.
 Do not invent calendar events as if they were booked unless the user confirms.
+Lead with the deliverable (draft / checklist / agenda), then brief follow-ups if needed.
 ''';
 
   static String systemFor({required bool agentMode}) =>
       agentMode ? agentSystem : workSystem;
 
-  /// Quick actions: (chip label, icon hint key, prompt template injected as user message).
-  static const List<(String label, String prompt)> quickActions = [
+  /// Agent-mode quick actions (everyday assistant).
+  static const List<(String label, String prompt)> agentQuickActions = [
     (
       'Schedule a meeting',
       'Help me schedule a meeting. Ask for title, date/time, duration, and attendees if missing, then draft a clear invite message and a short agenda.',
@@ -37,4 +38,41 @@ Do not invent calendar events as if they were booked unless the user confirms.
       'Help me write something. Ask what I need (message, email, note, caption) and the tone if unclear, then draft a polished version I can copy.',
     ),
   ];
+
+  /// Work-mode quick actions (productivity-focused chips).
+  static const List<(String label, String prompt)> workQuickActions = [
+    (
+      'Draft agenda',
+      'Draft a crisp meeting agenda. Ask for topic and duration if missing, then give timed agenda items plus prep checklist.',
+    ),
+    (
+      'Action items',
+      'Turn my notes into clear action items. Ask me to paste notes if needed, then list owners, due hints, and next steps as a checklist.',
+    ),
+    (
+      'Reply draft',
+      'Help me draft a professional reply. Ask for context or paste if missing, then give a polished reply plus a shorter alternative.',
+    ),
+    (
+      'Prioritize today',
+      'Help me prioritize today. Ask for my task list if missing, then rank Must / Should / Later with one-line reasons.',
+    ),
+  ];
+
+  /// Back-compat alias used by older call sites.
+  static const List<(String label, String prompt)> quickActions =
+      agentQuickActions;
+
+  static List<(String label, String prompt)> quickActionsFor({
+    required bool agentMode,
+  }) =>
+      agentMode ? agentQuickActions : workQuickActions;
+
+  static String greetingFor({required bool agentMode}) => agentMode
+      ? "Hello, I'm Dua. Ask me anything."
+      : "Work mode on. Let's ship tasks — agendas, replies, priorities.";
+
+  static String emptyHintFor({required bool agentMode}) => agentMode
+      ? 'Try a quick action or type a question.'
+      : 'Pick a Work chip or describe the deliverable you need.';
 }
