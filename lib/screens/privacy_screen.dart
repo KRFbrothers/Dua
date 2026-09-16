@@ -46,10 +46,11 @@ class PrivacyScreen extends StatelessWidget {
           _card(
             icon: Icons.hourglass_empty,
             color: DuaColors.purple,
-            title: 'Coming next',
+            title: 'Phase 5 hubs',
             body:
-                'Cloud / Remote / Access-from sync, screen share, and video '
-                'controls stay stubs — not shipping in Phase 4.',
+                'Cloud / Remote / Access-from screens are local hubs '
+                '(providers not connected yet). Voice Share / camera / Pulse '
+                'work on-device. Full cloud sync & video call stay later.',
           ),
           const SizedBox(height: 24),
           const Text(
