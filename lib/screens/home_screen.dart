@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _openOnline(BuildContext context, WidgetRef ref) async {
     final connectivityResult = await ref.read(connectivityProvider.future);
-    final isOnline = connectivityResult != ConnectivityResult.none && connectivityResult.isNotEmpty;
+    final isOnline = connectivityResult != ConnectivityResult.none;
 
     if (!isOnline) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -35,9 +35,8 @@ class HomeScreen extends ConsumerWidget {
       );
     }
 
-    // Simulate fetching response or navigating
-    final response = await AiService.getOnlineResponse("Give me a dua for success");
-    print("Online Service Response: $response");
+    final response = await AiService.getOnlineResponse('Give me a dua for success');
+    print('Online Service Response: $response');
 
     if (!context.mounted) return;
     await Navigator.of(context).push(
@@ -48,8 +47,8 @@ class HomeScreen extends ConsumerWidget {
   void _openOffline(BuildContext context, WidgetRef ref) {
     assertOfflinePath('Home→Offline');
 
-    final response = AiService.getOfflineResponse("Give me a dua for protection");
-    print("Offline Service Response: $response");
+    final response = AiService.getOfflineResponse('Give me a dua for protection');
+    print('Offline Service Response: $response');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -75,8 +74,8 @@ class HomeScreen extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              DuaColors.darkNavy, // Start color
-              DuaColors.darkPurple, // End color
+              DuaColors.darkNavy,
+              DuaColors.darkPurple,
             ],
           ),
         ),
@@ -88,18 +87,12 @@ class HomeScreen extends ConsumerWidget {
             const Spacer(),
             const NeonOrb(
               size: 200,
-              onTap: null, // VoiceScreen functionality can be re-added later if needed.
+              onTap: null,
             ),
             const SizedBox(height: 28),
-            // Temporarily disable NeonMicButton if voice is not yet integrated with AI service
-            // NeonMicButton(
-            //   onPressed: () => Navigator.of(context).push(
-            //     MaterialPageRoute(builder: (_) => const VoiceScreen()),
-            //   ),
-            // ),
             const SizedBox(height: 8),
             Text(
-              'Tap mic for Voice', // Keep text for now
+              'Tap mic for Voice',
               style: TextStyle(
                 color: DuaColors.textMuted.withValues(alpha: 0.9),
                 fontSize: 12,
@@ -122,27 +115,27 @@ class HomeScreen extends ConsumerWidget {
                   Expanded(
                     child: connectivityAsyncValue.when(
                       data: (connectivityResult) {
-                        final isOnline = connectivityResult != ConnectivityResult.none && connectivityResult.isNotEmpty;
+                        final isOnline = connectivityResult != ConnectivityResult.none;
                         return ModeCtaButton(
                           label: 'Online',
                           color: DuaColors.onlineTeal,
                           icon: Icons.cloud_outlined,
                           onPressed: isOnline
                               ? () => _openOnline(context, ref)
-                              : null, // Disable button if offline
+                              : null,
                         );
                       },
                       loading: () => ModeCtaButton(
                         label: 'Checking..',
                         color: DuaColors.onlineTeal,
                         icon: Icons.cloud_outlined,
-                        onPressed: null, // Disable while loading
+                        onPressed: null,
                       ),
                       error: (err, stack) => ModeCtaButton(
                         label: 'Error',
                         color: DuaColors.onlineTeal,
                         icon: Icons.error_outline,
-                        onPressed: null, // Disable on error
+                        onPressed: null,
                       ),
                     ),
                   ),
