@@ -1,42 +1,46 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../agent/agent_settings.dart';
 import '../privacy/data_paths.dart';
+import '../providers/connectivity_provider.dart';
 import '../theme/dua_colors.dart';
 import '../widgets/dua_logo.dart';
 import '../widgets/mode_cta_button.dart';
 import '../widgets/neon_orb.dart';
-import 'agent_settings_screen.dart';
 import 'offline_screen.dart';
 import 'online_screen.dart';
-import 'privacy_screen.dart';
-import 'voice_screen.dart';
-
-import '../providers/connectivity_provider.dart';
-import '../services/ai_service.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   Future<void> _openOnline(BuildContext context, WidgetRef ref) async {
     final connectivityResult = await ref.read(connectivityProvider.future);
-    final isOnline = connectivityResult != ConnectivityResult.none;
-
-    if (!isOnline) {
+    if (connectivityResult == ConnectivityResult.none) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
             '${DataPathLabels.onlineNeedsNetwork} — Online agent uses the internet.',
           ),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return;
     }
 
-    final response = await AiService.getOnlineResponse('Give me a dua for success');
-    print('Online Service Response: $response');
+    final settings = await AgentSettings.load();
+    if (!settings.hasApiKey) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('API key required. Open Online settings first.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     if (!context.mounted) return;
     await Navigator.of(context).push(
@@ -44,28 +48,49 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  void _openOffline(BuildContext context, WidgetRef ref) {
+  void _openOffline(BuildContext context) {
     assertOfflinePath('Home→Offline');
-
-    final response = AiService.getOfflineResponse('Give me a dua for protection');
-    print('Offline Service Response: $response');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(DataPathLabels.offlineSubtitle),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const OfflineScreen()),
     );
   }
 
+  Widget _onlineButton(BuildContext context, WidgetRef ref) {
+    return ref.watch(connectivityProvider).when(
+      data: (connectivityResult) {
+        if (connectivityResult == ConnectivityResult.none) {
+          return _disabledOnlineButton('Offline');
+        }
+        return FutureBuilder<AgentSettings>(
+          future: AgentSettings.load(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return _disabledOnlineButton('Checking..');
+            final hasKey = snapshot.data!.hasApiKey;
+            return ModeCtaButton(
+              label: hasKey ? 'Online' : 'Set API key',
+              color: DuaColors.onlineTeal,
+              icon: hasKey ? Icons.cloud_outlined : Icons.key_outlined,
+              onPressed: hasKey ? () => _openOnline(context, ref) : null,
+            );
+          },
+        );
+      },
+      loading: () => _disabledOnlineButton('Checking..'),
+      error: (error, stack) => _disabledOnlineButton('Unavailable'),
+    );
+  }
+
+  Widget _disabledOnlineButton(String label) {
+    return ModeCtaButton(
+      label: label,
+      color: DuaColors.onlineTeal,
+      icon: Icons.cloud_outlined,
+      onPressed: null,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connectivityAsyncValue = ref.watch(connectivityProvider);
-
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -73,10 +98,7 @@ class HomeScreen extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              DuaColors.darkNavy,
-              DuaColors.darkPurple,
-            ],
+            colors: [DuaColors.darkNavy, DuaColors.darkPurple],
           ),
         ),
         child: Column(
@@ -85,12 +107,8 @@ class HomeScreen extends ConsumerWidget {
             const Spacer(flex: 3),
             const DuaLogo(),
             const Spacer(),
-            const NeonOrb(
-              size: 200,
-              onTap: null,
-            ),
+            const NeonOrb(size: 200, onTap: null),
             const SizedBox(height: 28),
-            const SizedBox(height: 8),
             Text(
               'Tap mic for Voice',
               style: TextStyle(
@@ -108,37 +126,11 @@ class HomeScreen extends ConsumerWidget {
                       label: 'Offline',
                       color: DuaColors.offlineRed,
                       icon: Icons.folder_off_outlined,
-                      onPressed: () => _openOffline(context, ref),
+                      onPressed: () => _openOffline(context),
                     ),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(
-                    child: connectivityAsyncValue.when(
-                      data: (connectivityResult) {
-                        final isOnline = connectivityResult != ConnectivityResult.none;
-                        return ModeCtaButton(
-                          label: 'Online',
-                          color: DuaColors.onlineTeal,
-                          icon: Icons.cloud_outlined,
-                          onPressed: isOnline
-                              ? () => _openOnline(context, ref)
-                              : null,
-                        );
-                      },
-                      loading: () => ModeCtaButton(
-                        label: 'Checking..',
-                        color: DuaColors.onlineTeal,
-                        icon: Icons.cloud_outlined,
-                        onPressed: null,
-                      ),
-                      error: (err, stack) => ModeCtaButton(
-                        label: 'Error',
-                        color: DuaColors.onlineTeal,
-                        icon: Icons.error_outline,
-                        onPressed: null,
-                      ),
-                    ),
-                  ),
+                  Expanded(child: _onlineButton(context, ref)),
                 ],
               ),
             ),

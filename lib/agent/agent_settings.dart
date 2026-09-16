@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Securely stored LLM + privacy prefs (API key never hardcoded).
+/// Securely stored LLM and privacy preferences.
 class AgentSettings {
   AgentSettings({
     this.apiKey = '',
@@ -20,24 +20,22 @@ class AgentSettings {
   final String apiKey;
   final String baseUrl;
   final String model;
-
-  /// When true, Voice Mode requests on-device STT first (privacy).
   final bool preferOnDeviceStt;
 
   bool get hasApiKey => apiKey.trim().isNotEmpty;
 
   String get normalizedBaseUrl {
-    var u = baseUrl.trim();
-    if (u.isEmpty) u = defaultBaseUrl;
-    while (u.endsWith('/')) {
-      u = u.substring(0, u.length - 1);
+    var value = baseUrl.trim();
+    if (value.isEmpty) value = defaultBaseUrl;
+    while (value.length > 1 && value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
     }
-    return u;
+    return value;
   }
 
   String get effectiveModel {
-    final m = model.trim();
-    return m.isEmpty ? defaultModel : m;
+    final value = model.trim();
+    return value.isEmpty ? defaultModel : value;
   }
 
   AgentSettings copyWith({
@@ -58,16 +56,15 @@ class AgentSettings {
 
   static Future<AgentSettings> load() async {
     final key = await _storage.read(key: _kApiKey) ?? '';
-    final base = await _storage.read(key: _kBaseUrl);
-    final model = await _storage.read(key: _kModel);
+    final base = await _storage.read(key: _kBaseUrl) ?? defaultBaseUrl;
+    final model = await _storage.read(key: _kModel) ?? defaultModel;
     final sttRaw = await _storage.read(key: _kPreferOnDeviceStt);
-    // Default true when unset (privacy-first).
-    final preferStt = sttRaw == null || sttRaw.toLowerCase() != 'false';
+
     return AgentSettings(
       apiKey: key,
-      baseUrl: (base == null || base.trim().isEmpty) ? defaultBaseUrl : base,
-      model: (model == null || model.trim().isEmpty) ? defaultModel : model,
-      preferOnDeviceStt: preferStt,
+      baseUrl: base.trim().isEmpty ? defaultBaseUrl : base,
+      model: model.trim().isEmpty ? defaultModel : model,
+      preferOnDeviceStt: sttRaw == null || sttRaw.toLowerCase() != 'false',
     );
   }
 
@@ -81,7 +78,5 @@ class AgentSettings {
     );
   }
 
-  Future<void> clearApiKey() async {
-    await _storage.delete(key: _kApiKey);
-  }
+  Future<void> clearApiKey() => _storage.delete(key: _kApiKey);
 }
