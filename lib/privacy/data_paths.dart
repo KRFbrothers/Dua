@@ -18,7 +18,8 @@
 ///   (AgentSettings.preferOnDeviceStt).
 /// - Offline intents stay on the offline path; agent intents use Online path.
 ///
-/// Cloud / Remote / Access-from sync and screen-share / video remain stubs.
+/// Cloud / Remote / Access-from hubs ship in Phase 5 (no live sync yet).
+/// Voice Share / camera capture / Pulse ship in Phase 5; full video-call later.
 library;
 
 /// Human-readable labels for UI badges / snackbars.
