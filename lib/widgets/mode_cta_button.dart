@@ -14,7 +14,7 @@ class ModeCtaButton extends StatelessWidget {
   final String label;
   final Color color;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +46,14 @@ class ModeCtaButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: Colors.white, size: 20),
+                Icon(icon,
+                    color: onPressed != null ? Colors.white : Colors.grey,
+                    size: 20),
                 const SizedBox(width: 10),
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: onPressed != null ? Colors.white : Colors.grey,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.4,
