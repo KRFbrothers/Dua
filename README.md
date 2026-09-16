@@ -1,4 +1,4 @@
-# Dua — Flutter app (Phase 3 Voice Mode)
+# Dua — Flutter app (Phase 4 Privacy & polish)
 
 Private mobile assistant for Fareed. Modes: **Offline** · **Online** · **Voice**.
 
@@ -32,6 +32,56 @@ flutter run -d <deviceId>
 flutter analyze
 flutter test
 ```
+
+
+## Phase 4 Privacy & polish
+
+Explicit Offline vs Online data paths, on-device STT preference, Work vs Agent UI, lighter neon animations, adaptive launcher icon XML, privacy blurb.
+
+### Offline vs Online paths
+
+| Path | Network / LLM | UI cue |
+|------|----------------|--------|
+| **Offline** | Never — local files/media/apps only | `LOCAL ONLY` badge + snackbar |
+| **Online** | Required — API key → OpenAI-compatible chat | `NEEDS NETWORK` badge |
+| **Voice → Offline intents** | Local navigation only | Gallery / files screens |
+| **Voice → Agent** | Online LLM + TTS | Needs API key |
+
+Guards and docs live in `lib/privacy/data_paths.dart`. Offline services are annotated “must never call LLM/network”.
+
+### On-device STT toggle
+
+**Home → menu → Settings** (or Online gear) → **Prefer on-device speech recognition**. Wired into Voice via `SpeechListenOptions.onDevice`. Default **on** (privacy-first); falls back to system recognizer if on-device fails.
+
+### Work vs Agent
+
+Online AppBar toggle:
+
+- **Agent** — general chips (schedule / translate / summarize / write)
+- **Work** — productivity chips (agenda / action items / reply / prioritize) + distinct greeting, subtitle, purple accent
+
+System prompts already differed; Phase 4 makes the UI feel distinct.
+
+### Animations
+
+Home `NeonOrb` breathes + spins lightly; Online `AgentNodeGraphic` pulses nodes. Kept to simple `AnimationController`s for performance.
+
+### Launcher / adaptive icon
+
+- Existing `mipmap-*/ic_launcher.png` kept as pre-API-26 fallback
+- Added `mipmap-anydpi-v26/ic_launcher.xml` + vector `drawable/ic_launcher_foreground.xml`
+- To regenerate full PNG mipmaps locally: `flutter create . --platforms=android` (careful not to overwrite custom manifest) or Android Studio Image Asset Studio
+
+### Privacy screen
+
+Home menu → **Privacy**, or Settings → **Privacy details**. Short blurb: Offline local; API key only for Online; Voice on-device prefer. Cloud/Remote sync and screen share/video remain **coming next** stubs.
+
+### Still stubbed
+
+- Cloud / Remote / Access-from sync
+- Screen share / Video / Pulse on Voice
+- Attach in Online chat
+
 
 ## Phase 3 Voice Mode
 
@@ -175,6 +225,7 @@ lib/
   offline/               # permissions, media, file browser, apps, storage stats
   agent/                 # LLM client, secure settings, prompts
   voice/                 # intent router (Phase 3)
+  privacy/               # Offline vs Online path docs/guards (Phase 4)
   screens/
     home_screen.dart
     offline_screen.dart
@@ -184,6 +235,7 @@ lib/
     apps_list_screen.dart
     online_screen.dart
     agent_settings_screen.dart
+    privacy_screen.dart
     voice_screen.dart
     stub_detail_screen.dart
   widgets/
@@ -207,8 +259,7 @@ BUILD_PLAN.md
 ## Still stubbed (later phases)
 
 - Screen share / video call / Pulse
-- Work mode beyond a second chat persona
-- Cloud / Remote / Access-from sync
+- Cloud / Remote / Access-from sync (full remote)
 - Attach in Online chat
 - Stronger NLU beyond keyword router
 
@@ -220,7 +271,8 @@ See also `BUILD_PLAN.md`.
 - Short Hinglish voice/text
 - Agent chat before full Work mode
 - No hardcoded API keys
-- Prefer on-device STT when available
+- Prefer on-device STT when available (Settings toggle)
+- Explicit Offline vs Online data paths (no LLM in Offline)
 
 ---
 
