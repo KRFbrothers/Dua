@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../agent/agent_settings.dart';
+import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
+import 'privacy_screen.dart';
 
 class AgentSettingsScreen extends StatefulWidget {
   const AgentSettingsScreen({super.key});
@@ -17,6 +19,7 @@ class _AgentSettingsScreenState extends State<AgentSettingsScreen> {
   bool _loading = true;
   bool _saving = false;
   bool _obscureKey = true;
+  bool _preferOnDeviceStt = true;
 
   @override
   void initState() {
@@ -31,6 +34,7 @@ class _AgentSettingsScreenState extends State<AgentSettingsScreen> {
       _apiKeyCtrl.text = s.apiKey;
       _baseUrlCtrl.text = s.baseUrl;
       _modelCtrl.text = s.model;
+      _preferOnDeviceStt = s.preferOnDeviceStt;
       _loading = false;
     });
   }
@@ -45,13 +49,14 @@ class _AgentSettingsScreenState extends State<AgentSettingsScreen> {
       model: _modelCtrl.text.trim().isEmpty
           ? AgentSettings.defaultModel
           : _modelCtrl.text,
+      preferOnDeviceStt: _preferOnDeviceStt,
     );
     await settings.save();
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Agent settings saved'),
+        content: Text('Settings saved'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -83,7 +88,7 @@ class _AgentSettingsScreenState extends State<AgentSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agent settings'),
+        title: const Text('Settings'),
         actions: [
           TextButton(
             onPressed: _saving || _loading ? null : _save,
@@ -102,16 +107,43 @@ class _AgentSettingsScreenState extends State<AgentSettingsScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               children: [
+                _sectionTitle('Privacy'),
+                const SizedBox(height: 8),
+                _privacyCard(context),
+                const SizedBox(height: 20),
+                _sectionTitle('Voice'),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Prefer on-device speech recognition',
+                    style: TextStyle(color: DuaColors.textPrimary),
+                  ),
+                  subtitle: Text(
+                    DataPathLabels.voiceOnDevicePrefer,
+                    style: TextStyle(
+                      color: DuaColors.textSecondary.withValues(alpha: 0.95),
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                  value: _preferOnDeviceStt,
+                  activeThumbColor: DuaColors.cyan,
+                  onChanged: (v) => setState(() => _preferOnDeviceStt = v),
+                ),
+                const SizedBox(height: 20),
+                _sectionTitle('Online agent (API)'),
+                const SizedBox(height: 8),
                 Text(
                   'API key is stored in secure storage on this device. '
-                  'Never commit keys to git.',
+                  'Used only for Online / agent replies — never by Offline.',
                   style: TextStyle(
                     color: DuaColors.textSecondary.withValues(alpha: 0.95),
                     height: 1.4,
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _apiKeyCtrl,
                   obscureText: _obscureKey,
@@ -195,6 +227,54 @@ class _AgentSettingsScreenState extends State<AgentSettingsScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: DuaColors.cyanSoft,
+        fontWeight: FontWeight.w700,
+        fontSize: 13,
+        letterSpacing: 1.1,
+      ),
+    );
+  }
+
+  Widget _privacyCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: DuaColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DuaColors.borderNeon),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Offline stays local. Online needs network + your API key. '
+            'Voice can prefer on-device STT.',
+            style: TextStyle(
+              color: DuaColors.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+              );
+            },
+            icon: const Icon(Icons.privacy_tip_outlined, size: 18),
+            label: const Text('Privacy details'),
+          ),
+        ],
+      ),
     );
   }
 
