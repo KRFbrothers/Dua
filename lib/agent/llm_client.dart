@@ -29,6 +29,7 @@ class LlmFailure extends LlmResult {
 }
 
 /// OpenAI-compatible chat completions client (OpenAI / Groq / OpenRouter).
+/// Online data path only — never call from Offline screens/services.
 class LlmClient {
   LlmClient({http.Client? httpClient}) : _http = httpClient ?? http.Client();
 
