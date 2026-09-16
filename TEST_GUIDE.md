@@ -10,7 +10,7 @@ Target: Android emulator or physical phone (Voice better on real device).
 3. Command Prompt:
 
 ```bat
-cd C:\Users\Hp\Downloads\Dua-main
+cd C:\\Users\\Hp\\Downloads\\Dua-main
 flutter pub get
 flutter devices
 flutter run
@@ -82,7 +82,9 @@ Prefer a **real phone** (emulator mic is flaky).
 - [ ] Say: **“Dua, gallery kholo”** → opens Offline Images + spoken confirm
 - [ ] Ask a normal question → routes to Online (needs API key) or prompts for key
 - [ ] **End** leaves Voice
-- [ ] Share / Video / Pulse → “coming soon”
+- [ ] **Share** → system share sheet with last Tum + Dua transcript
+- [ ] **Video** → camera capture (or quiet cancel); path snackbar/dialog
+- [ ] **Pulse** → toggles on/off snackbar; waveform intensifies; cyan highlight
 - [ ] Privacy / settings: **on-device STT** toggle works (prefer local recognition)
 
 ---
@@ -97,11 +99,27 @@ Prefer a **real phone** (emulator mic is flaky).
 
 ---
 
+
+## 6. Phase 5 — Cloud / Remote / Access / Work board
+
+### Offline hubs
+- [ ] Offline → **Cloud** → privacy copy; Drive/Dropbox/OneDrive “Not connected”; Connect snackbar
+- [ ] Cloud → **Pick a local mirror folder** opens Documents/Downloads or saves app-docs hint
+- [ ] Offline → **Remote** → Allow remote access default OFF; toggle persists
+- [ ] Offline → **Access from…** → checklist + Open Documents / Downloads
+
+### Work board
+- [ ] Online → **Work** → list icon opens Work board (LOCAL badge)
+- [ ] FAB add title+body; tap to edit; swipe to delete
+- [ ] After Work LLM reply → SnackBar **Save to Work board** saves draft
+- [ ] Work chips: New task / Outline / Email draft / Prioritize today
+
+---
 ## Common fixes
 
 | Problem | Fix |
 |---------|-----|
-| `flutter` not found | Re-open CMD after PATH; `C:\flutter\bin` |
+| `flutter` not found | Re-open CMD after PATH; `C:\\flutter\\bin` |
 | No `pubspec.yaml` | `cd` into folder that contains `lib` + `pubspec.yaml` |
 | No Android device | Start emulator Play ▶ or USB phone |
 | Build fails after ZIP | `flutter pub get` then `flutter create . --platforms=android` |
@@ -112,6 +130,6 @@ Prefer a **real phone** (emulator mic is flaky).
 
 ## Pass criteria (MVP)
 
-App installs and runs on Android; Offline lists real local content with permissions; Online chats with a saved key; Voice routes gallery vs questions; Privacy/STT polish present; no crash on deny/offline.
+App installs and runs on Android; Offline lists real local content with permissions; Online chats with a saved key; Voice routes gallery vs questions; Privacy/STT polish present; Phase 5 Cloud/Remote/Access hubs + Voice Share/Video/Pulse + Work board; no crash on deny/offline.
 
 PRIVATE · OFFLINE · ONLINE · ALWAYS WITH YOU
