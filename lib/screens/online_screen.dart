@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../agent/agent_settings.dart';
 import '../agent/llm_client.dart';
 import '../agent/prompts.dart';
+import '../agent/work_board_store.dart';
 import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
 import '../widgets/agent_node_graphic.dart';
 import 'agent_settings_screen.dart';
 import 'voice_screen.dart';
+import 'work_board_screen.dart';
 
 class OnlineScreen extends StatefulWidget {
   const OnlineScreen({super.key});
@@ -39,9 +41,9 @@ class _OnlineScreenState extends State<OnlineScreen> {
   };
 
   static const _workIcons = <String, IconData>{
-    'Draft agenda': Icons.view_agenda_outlined,
-    'Action items': Icons.checklist_outlined,
-    'Reply draft': Icons.reply_outlined,
+    'New task': Icons.add_task_outlined,
+    'Outline': Icons.account_tree_outlined,
+    'Email draft': Icons.mail_outline,
     'Prioritize today': Icons.flag_outlined,
   };
 
@@ -111,7 +113,6 @@ class _OnlineScreenState extends State<OnlineScreen> {
     final forModel = (apiText ?? shown).trim();
     if (shown.isEmpty || forModel.isEmpty) return;
 
-    // Online path: network LLM only — never used from Offline screens.
     assertOnlinePath('OnlineScreen._send');
 
     setState(() {
@@ -163,6 +164,34 @@ class _OnlineScreenState extends State<OnlineScreen> {
       if (result is LlmSuccess) {
         _messages.add(_ChatBubble(text: result.content, isUser: false));
         _history.add(ChatMessage(role: 'assistant', content: result.content));
+        if (!_agentMode) {
+          final reply = result.content;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Reply ready'),
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'Save to Work board',
+                  onPressed: () async {
+                    await WorkBoardStore.instance.add(
+                      title: WorkBoardStore.titleFromReply(reply),
+                      body: reply,
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Saved to Work board (LOCAL)'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          });
+        }
       } else if (result is LlmFailure) {
         _messages.add(_ChatBubble(text: result.message, isUser: false));
         if (_history.isNotEmpty && _history.last.role == 'user') {
@@ -227,13 +256,23 @@ class _OnlineScreenState extends State<OnlineScreen> {
           ],
         ),
         actions: [
+          if (!_agentMode)
+            IconButton(
+              tooltip: 'Work board (local)',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const WorkBoardScreen()),
+                );
+              },
+              icon: const Icon(Icons.view_list_outlined),
+            ),
           IconButton(
             tooltip: 'Agent & privacy settings',
             onPressed: _openSettings,
             icon: const Icon(Icons.settings_outlined),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: EdgeInsets.only(right: 12),
             child: _ModeToggle(
               agentSelected: _agentMode,
               onChanged: _switchMode,
@@ -250,7 +289,7 @@ class _OnlineScreenState extends State<OnlineScreen> {
             child: Text(
               _agentMode
                   ? DataPathLabels.onlineSubtitle
-                  : 'Work mode — structured drafts & checklists. Still needs network.',
+                  : 'Work mode — drafts & checklists. Chat needs network; Work board is LOCAL.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: DuaColors.textMuted,
