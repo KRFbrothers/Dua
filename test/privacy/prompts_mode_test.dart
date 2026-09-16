@@ -22,7 +22,7 @@ void main() {
       final agent = AgentPrompts.quickActionsFor(agentMode: true);
       final work = AgentPrompts.quickActionsFor(agentMode: false);
       expect(agent.map((e) => e.$1), contains('Translate text'));
-      expect(work.map((e) => e.$1), contains('Action items'));
+      expect(work.map((e) => e.$1), contains('New task'));
       expect(agent.map((e) => e.$1).toSet()
           .intersection(work.map((e) => e.$1).toSet()), isEmpty);
     });
