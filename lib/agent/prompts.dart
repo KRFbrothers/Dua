@@ -42,16 +42,16 @@ Lead with the deliverable (draft / checklist / agenda), then brief follow-ups if
   /// Work-mode quick actions (productivity-focused chips).
   static const List<(String label, String prompt)> workQuickActions = [
     (
-      'Draft agenda',
-      'Draft a crisp meeting agenda. Ask for topic and duration if missing, then give timed agenda items plus prep checklist.',
+      'New task',
+      'Help me capture a new task. Ask for title and deadline if missing, then give a clear task statement, checklist of next steps, and a one-line success criteria.',
     ),
     (
-      'Action items',
-      'Turn my notes into clear action items. Ask me to paste notes if needed, then list owners, due hints, and next steps as a checklist.',
+      'Outline',
+      'Draft a crisp outline. Ask for topic and audience if missing, then give a structured outline with sections and bullet points I can expand.',
     ),
     (
-      'Reply draft',
-      'Help me draft a professional reply. Ask for context or paste if missing, then give a polished reply plus a shorter alternative.',
+      'Email draft',
+      'Help me draft a professional email. Ask for recipient/context if missing, then give a polished email plus a shorter alternative.',
     ),
     (
       'Prioritize today',
@@ -74,5 +74,5 @@ Lead with the deliverable (draft / checklist / agenda), then brief follow-ups if
 
   static String emptyHintFor({required bool agentMode}) => agentMode
       ? 'Try a quick action or type a question.'
-      : 'Pick a Work chip or describe the deliverable you need.';
+      : 'Pick a Work chip, open the Work board, or describe a deliverable.';
 }

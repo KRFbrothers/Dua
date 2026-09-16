@@ -7,6 +7,8 @@
     <!-- Optional: Bluetooth headset for speech_to_text on some devices. -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Camera for Voice Video capture (image_picker); full video-call later. -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- Media / storage (API 33+ granular + legacy maxSdk 32). No MANAGE_EXTERNAL_STORAGE. -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
