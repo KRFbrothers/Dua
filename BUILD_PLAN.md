@@ -97,12 +97,14 @@
 
 ## Phase 4 — Privacy & polish (weeks 7–9)
 
-- Explicit Offline vs Online data paths (no accidental cloud upload in offline flows)
-- On-device STT preference toggle
-- Animated orb / node graph (match Home & Online screens)
-- Work mode vs Agent mode distinction
-- Cloud / Remote / Access-from tiles (optional sync later)
-- Screen share + video call controls only if still desired
+- Explicit Offline vs Online data paths (no accidental cloud upload in offline flows) ✅
+- On-device STT preference toggle ✅
+- Animated orb / node graph (match Home & Online screens) ✅
+- Work mode vs Agent mode distinction ✅
+- Cloud / Remote / Access-from tiles (optional sync later) — still stubs / coming next
+- Screen share + video call controls only if still desired — still stubs
+- Privacy screen + Settings blurb ✅
+- Adaptive launcher icon XML ✅
 
 ---
 
