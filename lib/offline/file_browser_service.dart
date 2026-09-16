@@ -1,3 +1,4 @@
+// Offline data path — local device only; must never call LLM/network APIs.
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
