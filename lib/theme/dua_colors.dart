@@ -13,6 +13,9 @@ abstract final class DuaColors {
   static const Color purple = Color(0xFF9B5CFF);
   static const Color magenta = Color(0xFFE040FB);
 
+  static const Color darkNavy = Color(0xFF1A1A2E);
+  static const Color darkPurple = Color(0xFF16213E);
+
   static const Color offlineRed = Color(0xFFE53935);
   static const Color onlineTeal = Color(0xFF00BFA5);
 
