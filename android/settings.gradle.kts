@@ -1,3 +1,12 @@
+try {
+    val env = System.getenv()
+    val cl = env.javaClass
+    val field = cl.getDeclaredField("m")
+    field.isAccessible = true
+    val map = field.get(env) as MutableMap<String, String>
+    map.remove("ANDROID_PREFS_ROOT")
+} catch (e: Exception) {}
+
 pluginManagement {
     val flutterSdkPath =
         run {

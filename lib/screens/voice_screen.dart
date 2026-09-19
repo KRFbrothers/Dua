@@ -1,160 +1,323 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
 
-import '../privacy/data_paths.dart';
 import '../theme/dua_colors.dart';
-import '../widgets/dua_logo.dart';
-import '../widgets/mode_cta_button.dart';
-import '../widgets/neon_orb.dart';
-import 'agent_settings_screen.dart';
+import '../voice/voice_intent_router.dart';
+import 'apps_list_screen.dart';
+import 'file_browser_screen.dart';
+import 'media_gallery_screen.dart';
 import 'offline_screen.dart';
 import 'online_screen.dart';
-import 'privacy_screen.dart';
-import 'voice_screen.dart';
+import 'storage_analysis_screen.dart';
 
-import '../providers/connectivity_provider.dart';
-import '../services/ai_service.dart';
+class VoiceScreen extends StatefulWidget {
+  const VoiceScreen({super.key});
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+  @override
+  State<VoiceScreen> createState() => _VoiceScreenState();
+}
 
-  Future<void> _openOnline(BuildContext context, WidgetRef ref) async {
-    final connectivityResult = await ref.read(connectivityProvider.future);
-    final isOnline = connectivityResult != ConnectivityResult.none;
+class _VoiceScreenState extends State<VoiceScreen> {
+  late final stt.SpeechToText _speech;
+  late final FlutterTts _tts;
+  late final ImagePicker _imagePicker;
 
-    if (!isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${DataPathLabels.onlineNeedsNetwork} — Online agent uses the internet.',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  String _transcript = '';
+  String _status = 'Tap the mic and speak';
+  bool _speechReady = false;
+  bool _pulse = false;
+  XFile? _capturedVideo;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+    _tts = FlutterTts();
+    _imagePicker = ImagePicker();
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    _tts.stop();
+    super.dispose();
+  }
+
+  Future<void> _toggleListening() async {
+    if (_speech.isListening) {
+      await _speech.stop();
+      if (mounted) setState(() => _status = 'Paused');
       return;
     }
 
-    final response = await AiService.getOnlineResponse('Give me a dua for success');
-    print('Online Service Response: $response');
+    if (!_speechReady) {
+      // Explicitly request microphone permission before initializing
+      final permission = await Permission.microphone.request();
+      if (permission != PermissionStatus.granted) {
+        if (mounted) setState(() => _status = 'Microphone permission denied');
+        return;
+      }
 
-    if (!context.mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const OnlineScreen()),
+      _speechReady = await _speech.initialize(
+        onStatus: (status) {
+          if (!mounted) return;
+          if (status == 'notListening') setState(() => _status = 'Ready');
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() => _status = 'Speech recognition unavailable (Check Emulator settings)');
+          }
+        },
+      );
+    }
+
+    if (!_speechReady) {
+      setState(() => _status = 'Microphone or Speech Service is unavailable');
+      return;
+    }
+
+    setState(() {
+      _transcript = '';
+      _status = 'Listening...';
+    });
+    await _speech.listen(
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() => _transcript = result.recognizedWords);
+        if (result.finalResult) _handleTranscript(result.recognizedWords);
+      },
     );
   }
 
-  void _openOffline(BuildContext context, WidgetRef ref) {
-    assertOfflinePath('Home→Offline');
+  Future<void> _handleTranscript(String text) async {
+    final route = VoiceIntentRouter.resolve(text);
+    setState(() => _status = route.confirmation);
+    await _tts.speak(route.confirmation);
 
-    final response = AiService.getOfflineResponse('Give me a dua for protection');
-    print('Offline Service Response: $response');
+    if (!mounted || route.kind == VoiceRouteKind.unknown) return;
+    if (route.kind == VoiceRouteKind.onlineAgent) {
+      final connectivity = await Connectivity().checkConnectivity();
+      if (!mounted) return;
+      if (connectivity.contains(ConnectivityResult.none)) {
+        _showMessage('Online agent needs an internet connection.');
+        return;
+      }
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const OnlineScreen()));
+      return;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(DataPathLabels.offlineSubtitle),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+    final Widget? page = switch (route.kind) {
+      VoiceRouteKind.galleryImages => const MediaGalleryScreen(
+        title: 'Images',
+        kind: MediaGalleryKind.images,
       ),
-    );
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const OfflineScreen()),
+      VoiceRouteKind.galleryVideos => const MediaGalleryScreen(
+        title: 'Videos',
+        kind: MediaGalleryKind.videos,
+      ),
+      VoiceRouteKind.downloads => const FileBrowserScreen(
+        title: 'Downloads',
+        mode: FileBrowserMode.downloads,
+      ),
+      VoiceRouteKind.documents => const FileBrowserScreen(
+        title: 'Documents',
+        mode: FileBrowserMode.documents,
+      ),
+      VoiceRouteKind.storage => const FileBrowserScreen(
+        title: 'Main storage',
+        mode: FileBrowserMode.folder,
+      ),
+      VoiceRouteKind.audio => const FileBrowserScreen(
+        title: 'Audio',
+        mode: FileBrowserMode.audio,
+      ),
+      VoiceRouteKind.apps => const AppsListScreen(),
+      VoiceRouteKind.storageAnalysis => const StorageAnalysisScreen(),
+      VoiceRouteKind.offlineHome => const OfflineScreen(),
+      VoiceRouteKind.onlineAgent || VoiceRouteKind.unknown => null,
+    };
+    if (page != null && mounted) {
+      await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    }
+  }
+
+  Future<void> _captureVideoPreview() async {
+    final video = await _imagePicker.pickVideo(source: ImageSource.camera);
+    if (video != null && mounted) {
+      setState(() => _capturedVideo = video);
+    }
+  }
+
+  Future<void> _shareTranscript() async {
+    if (_transcript.trim().isEmpty) {
+      _showMessage('There is no transcript to share yet.');
+      return;
+    }
+    await SharePlus.instance.share(ShareParams(text: _transcript));
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final connectivityAsyncValue = ref.watch(connectivityProvider);
-
+  Widget build(BuildContext context) {
+    final listening = _speech.isListening;
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Voice Mode'),
+        actions: [
+          IconButton(
+            tooltip: 'Share transcript',
+            onPressed: _shareTranscript,
+            icon: const Icon(Icons.share_outlined),
+          ),
+          IconButton(
+            tooltip: 'Camera preview',
+            onPressed: _captureVideoPreview,
+            icon: const Icon(Icons.videocam_outlined),
+          ),
+        ],
+      ),
       body: Container(
         width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              DuaColors.darkNavy,
-              DuaColors.darkPurple,
-            ],
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(gradient: DuaColors.neonGradient),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: DuaColors.surface.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(28),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spacer(flex: 3),
-            const DuaLogo(),
-            const Spacer(),
-            const NeonOrb(
-              size: 200,
-              onTap: null,
-            ),
-            const SizedBox(height: 28),
-            const SizedBox(height: 8),
-            Text(
-              'Tap mic for Voice',
-              style: TextStyle(
-                color: DuaColors.textMuted.withValues(alpha: 0.9),
-                fontSize: 12,
+          child: Column(
+            children: [
+              const Text(
+                'Speak naturally',
+                style: TextStyle(
+                  color: DuaColors.textPrimary,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const Spacer(flex: 2),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ModeCtaButton(
-                      label: 'Offline',
-                      color: DuaColors.offlineRed,
-                      icon: Icons.folder_off_outlined,
-                      onPressed: () => _openOffline(context, ref),
+              const SizedBox(height: 8),
+              Text(
+                _status,
+                style: const TextStyle(color: DuaColors.textSecondary),
+              ),
+              const SizedBox(height: 36),
+              Expanded(
+                child: Center(
+                  child: CustomPaint(
+                    size: const Size(double.infinity, 150),
+                    painter: _WaveformPainter(
+                      active: listening,
+                      intensified: _pulse,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: connectivityAsyncValue.when(
-                      data: (connectivityResult) {
-                        final isOnline = connectivityResult != ConnectivityResult.none;
-                        return ModeCtaButton(
-                          label: 'Online',
-                          color: DuaColors.onlineTeal,
-                          icon: Icons.cloud_outlined,
-                          onPressed: isOnline
-                              ? () => _openOnline(context, ref)
-                              : null,
-                        );
-                      },
-                      loading: () => ModeCtaButton(
-                        label: 'Checking..',
-                        color: DuaColors.onlineTeal,
-                        icon: Icons.cloud_outlined,
-                        onPressed: null,
-                      ),
-                      error: (err, stack) => ModeCtaButton(
-                        label: 'Error',
-                        color: DuaColors.onlineTeal,
-                        icon: Icons.error_outline,
-                        onPressed: null,
-                      ),
+                ),
+              ),
+              if (_capturedVideo != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Video preview captured: ${_capturedVideo!.name}',
+                    style: const TextStyle(color: DuaColors.cyanSoft),
+                  ),
+                ),
+              if (_transcript.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: DuaColors.card,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    _transcript,
+                    style: const TextStyle(
+                      color: DuaColors.textPrimary,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    tooltip: 'Pulse',
+                    onPressed: () => setState(() => _pulse = !_pulse),
+                    icon: Icon(
+                      Icons.graphic_eq,
+                      color: _pulse ? DuaColors.cyan : DuaColors.textSecondary,
+                      size: 30,
+                    ),
+                  ),
+                  FloatingActionButton(
+                    heroTag: 'voice-mic',
+                    onPressed: _toggleListening,
+                    backgroundColor: listening
+                        ? DuaColors.offlineRed
+                        : DuaColors.cyan,
+                    child: Icon(listening ? Icons.mic : Icons.mic_none),
+                  ),
+                  IconButton(
+                    tooltip: 'End',
+                    onPressed: () async {
+                      await _speech.stop();
+                      if (mounted) setState(() => _status = 'Session ended');
+                    },
+                    icon: const Icon(
+                      Icons.stop_circle_outlined,
+                      color: DuaColors.offlineRed,
+                      size: 30,
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Offline = local  ·  Online = network + API key',
-              style: TextStyle(
-                color: DuaColors.textMuted.withValues(alpha: 0.85),
-                fontSize: 11,
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _WaveformPainter extends CustomPainter {
+  const _WaveformPainter({required this.active, required this.intensified});
+
+  final bool active;
+  final bool intensified;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = DuaColors.cyan
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    final center = size.height / 2;
+    final amplitude = active ? (intensified ? 52.0 : 30.0) : 10.0;
+    for (var index = 0; index < 25; index++) {
+      final x = (index + 1) * size.width / 26;
+      final height = amplitude * (0.35 + (index % 5) / 5);
+      canvas.drawLine(
+        Offset(x, center - height),
+        Offset(x, center + height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) =>
+      active != oldDelegate.active || intensified != oldDelegate.intensified;
 }

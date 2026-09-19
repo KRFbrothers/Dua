@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../agent/agent_settings.dart';
 import '../privacy/data_paths.dart';
-import '../providers/connectivity_provider.dart';
 import '../theme/dua_colors.dart';
 import '../widgets/dua_logo.dart';
 import '../widgets/mode_cta_button.dart';
@@ -15,9 +14,9 @@ import 'online_screen.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  Future<void> _openOnline(BuildContext context, WidgetRef ref) async {
-    final connectivityResult = await ref.read(connectivityProvider.future);
-    if (connectivityResult == ConnectivityResult.none) {
+  Future<void> _openOnline(BuildContext context) async {
+    final connectivity = await Connectivity().checkConnectivity();
+    if (connectivity.contains(ConnectivityResult.none)) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -55,28 +54,19 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _onlineButton(BuildContext context, WidgetRef ref) {
-    return ref.watch(connectivityProvider).when(
-      data: (connectivityResult) {
-        if (connectivityResult == ConnectivityResult.none) {
-          return _disabledOnlineButton('Offline');
-        }
-        return FutureBuilder<AgentSettings>(
-          future: AgentSettings.load(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return _disabledOnlineButton('Checking..');
-            final hasKey = snapshot.data!.hasApiKey;
-            return ModeCtaButton(
-              label: hasKey ? 'Online' : 'Set API key',
-              color: DuaColors.onlineTeal,
-              icon: hasKey ? Icons.cloud_outlined : Icons.key_outlined,
-              onPressed: hasKey ? () => _openOnline(context, ref) : null,
-            );
-          },
+  Widget _onlineButton(BuildContext context) {
+    return FutureBuilder<AgentSettings>(
+      future: AgentSettings.load(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return _disabledOnlineButton('Checking..');
+        final hasKey = snapshot.data!.hasApiKey;
+        return ModeCtaButton(
+          label: hasKey ? 'Online' : 'Set API key',
+          color: DuaColors.onlineTeal,
+          icon: hasKey ? Icons.cloud_outlined : Icons.key_outlined,
+          onPressed: hasKey ? () => _openOnline(context) : null,
         );
       },
-      loading: () => _disabledOnlineButton('Checking..'),
-      error: (error, stack) => _disabledOnlineButton('Unavailable'),
     );
   }
 
@@ -130,7 +120,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  Expanded(child: _onlineButton(context, ref)),
+                  Expanded(child: _onlineButton(context)),
                 ],
               ),
             ),

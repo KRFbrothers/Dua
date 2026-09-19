@@ -1,80 +1,34 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../theme/dua_colors.dart';
 
-/// Soft constellation / node graph for Online Agent (Phase 4 polish).
-class AgentNodeGraphic extends StatefulWidget {
+/// Soft constellation / node graph for Online Agent (static).
+class AgentNodeGraphic extends StatelessWidget {
   const AgentNodeGraphic({super.key, this.size = 160});
 
   final double size;
 
   @override
-  State<AgentNodeGraphic> createState() => _AgentNodeGraphicState();
-}
-
-class _AgentNodeGraphicState extends State<AgentNodeGraphic>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return CustomPaint(
-          size: Size.square(widget.size),
-          painter: _NodePainter(t: _controller.value),
-        );
-      },
+    return CustomPaint(
+      size: Size.square(size),
+      painter: _NodePainter(),
     );
   }
 }
 
 class _NodePainter extends CustomPainter {
-  _NodePainter({required this.t});
-
-  final double t;
-
   @override
   void paint(Canvas canvas, Size size) {
     final c = Offset(size.width / 2, size.height / 2);
-    final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 2);
+    const pulse = 0.5; // Static value
 
     final nodes = <Offset>[
       c,
-      c + Offset(
-        math.cos(t * math.pi * 2) * 50,
-        math.sin(t * math.pi * 2) * 30,
-      ),
-      c + Offset(
-        math.cos(t * math.pi * 2 + 2.1) * 58,
-        math.sin(t * math.pi * 2 + 1.2) * 42,
-      ),
-      c + Offset(
-        math.cos(t * math.pi * 2 + 4.0) * 44,
-        -math.sin(t * math.pi * 2 + 2.4) * 52,
-      ),
-      c + Offset(
-        math.cos(t * math.pi * 2 + 5.2) * 36,
-        math.sin(t * math.pi * 2 + 3.1) * 38,
-      ),
+      c + const Offset(50, 0),
+      c + const Offset(-25, 40),
+      c + const Offset(-44, -52),
+      c + const Offset(36, 38),
       c + const Offset(-52, 22),
       c + const Offset(42, -48),
     ];
@@ -94,8 +48,7 @@ class _NodePainter extends CustomPainter {
     canvas.drawLine(nodes[5], nodes[6], purpleLine);
 
     for (var i = 0; i < nodes.length; i++) {
-      final r =
-          i == 0 ? 9.0 + pulse * 2.0 : 4.5 + (i.isEven ? pulse : 1 - pulse);
+      final r = i == 0 ? 9.0 + pulse * 2.0 : 4.5 + (i.isEven ? pulse : 1 - pulse);
       final paint = Paint()
         ..shader = RadialGradient(
           colors: [
@@ -116,5 +69,5 @@ class _NodePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _NodePainter oldDelegate) => oldDelegate.t != t;
+  bool shouldRepaint(covariant _NodePainter oldDelegate) => false;
 }

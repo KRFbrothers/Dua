@@ -135,7 +135,7 @@ class _OrbPainter extends CustomPainter {
       canvas.drawPath(
         path,
         wavePaint
-          ..color = DuaColors.cyanSoft.withValues(alpha: 0.42 - ring * 0.1),
+          ..color = DuaColors.cyanSoft.withValues(alpha: 0.25 - ring * 0.08),
       );
     }
   }

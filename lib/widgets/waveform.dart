@@ -89,7 +89,7 @@ class _WavePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const bars = 36;
+    const bars = 16;
     final barWidth = size.width / (bars * 1.8);
     final gap = barWidth * 0.8;
     final midY = size.height / 2;
